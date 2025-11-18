@@ -1,10 +1,17 @@
 import type { NextConfig } from "next";
 import { createMDX } from 'fumadocs-mdx/next';
 
-const withMDX = createMDX();
+const withMDX = createMDX({
+  mdxOptions: {
+    rehypePlugins: [],
+  },
+});
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  images: {
+    unoptimized: true,
+  },
 };
 
 export default withMDX(nextConfig);
