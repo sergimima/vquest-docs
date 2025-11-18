@@ -1,13 +1,13 @@
 ---
 title: Quality Assurance Report
-description: Automated testing suite report for RSKQuest smart contract
+description: Automated testing suite report for VQuest smart contract
 ---
 
-# 📋 RSKQuest - Quality Assurance Report
+# 📋 VQuest - Quality Assurance Report
 
 **Version:** 1.0.0  
 **Date:** October 10, 2025  
-**Contract:** RSKQuest.sol  
+**Contract:** VQuest.sol  
 **Auditor:** Automated Testing Suite  
 **Framework:** Foundry
 
@@ -32,21 +32,21 @@ description: Automated testing suite report for RSKQuest smart contract
 ## 🎯 Testing Scope
 
 ### Contracts Tested
-- **RSKQuest.sol** - Main NFT certificate contract
-  - Location: `src/RSKQuest.sol`
+- **VQuest.sol** - Main NFT certificate contract
+  - Location: `src/VQuest.sol`
   - Solidity Version: ^0.8.24
   - Dependencies: OpenZeppelin v5.x
 
 ### Test Suites
-1. **RSKQuest.t.sol** - Basic functionality tests (8 tests)
-2. **RSKQuestComprehensive.t.sol** - Advanced scenario tests (30 tests)
+1. **VQuest.t.sol** - Basic functionality tests (8 tests)
+2. **VQuestComprehensive.t.sol** - Advanced scenario tests (30 tests)
 
 ---
 
 ## 🧪 Test Categories & Results
 
 ### 1. Basic Functionality Tests (8 tests)
-**File:** `test/RSKQuest.t.sol`
+**File:** `test/VQuest.t.sol`
 
 | Test | Description | Gas Used | Status |
 |------|-------------|----------|--------|
@@ -271,8 +271,8 @@ Deployment Size:    8,020 bytes
 ### Execution Times
 
 ```
-RSKQuest.t.sol:          102.39ms (8 tests)
-RSKQuestComprehensive:   608.67ms (30 tests)
+VQuest.t.sol:          102.39ms (8 tests)
+VQuestComprehensive:   608.67ms (30 tests)
 Total:                   697.78ms (38 tests)
 ```
 
@@ -347,7 +347,7 @@ The contract has passed all quality assurance tests and is **APPROVED FOR DEPLOY
    - Show gas estimates to users
 
 3. **Deployment**
-   - Deploy to testnet first (RSK Testnet)
+   - Deploy to testnet first (Base Sepolia)
    - Verify contract on block explorer
    - Test with real-world scenarios
    - Monitor gas costs on mainnet
@@ -395,7 +395,7 @@ The contract has passed all quality assurance tests and is **APPROVED FOR DEPLOY
 
 For questions or concerns about this QA report:
 
-- Review test files: `test/RSKQuest.t.sol` and `test/RSKQuestComprehensive.t.sol`
+- Review test files: `test/VQuest.t.sol` and `test/VQuestComprehensive.t.sol`
 - Run tests: `forge test -vvv`
 - Check gas: `forge test --gas-report`
 - Review coverage: `forge coverage`
@@ -420,7 +420,7 @@ forge test --gas-report
 forge test --match-test test_MintCampaignCertificate
 
 # Run specific contract
-forge test --match-contract RSKQuestComprehensive
+forge test --match-contract VQuestComprehensive
 
 # Run with coverage
 forge coverage
@@ -429,8 +429,8 @@ forge coverage
 ### Contract Information
 
 ```solidity
-Name:     "RSK Quest"
-Symbol:   "RSKQ"
+Name:     "VQuest"
+Symbol:   "VQ"
 Standard: ERC721 + URIStorage + Enumerable
 Version:  1.0.0
 Solidity: ^0.8.24
@@ -446,5 +446,5 @@ License:  MIT
 
 ---
 
-*This QA report certifies that RSKQuest.sol has undergone comprehensive testing and is ready for deployment to production networks.*
+*This QA report certifies that VQuest.sol has undergone comprehensive testing and is ready for deployment to production networks.*
 

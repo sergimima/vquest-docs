@@ -1,0 +1,341 @@
+---
+title: Technical Stack
+description: Technologies, frameworks and tools used in the platform
+---
+
+# 🛠️ Technical Stack - VQuest
+
+## Executive Summary
+
+The VQuest platform is built with modern and scalable technologies, following industry best practices for enterprise web applications.
+
+---
+
+## Frontend
+
+### Main Framework
+- **Next.js 15.3.3** - React framework for production
+  - Server-Side Rendering (SSR)
+  - Static Site Generation (SSG)
+  - Integrated API Routes
+  - Automatic image optimization
+  - Automatic code splitting
+
+### UI Libraries
+- **React 19.2.0** - User interface library
+- **React DOM 19.2.0** - React rendering
+- **Tailwind CSS 4** - CSS utilities framework
+- **Fumadocs UI** - Documentation system
+
+### State Management
+- **NextAuth.js** - Authentication and session management
+- **React Context API** - Global application state
+
+---
+
+## Backend
+
+### Runtime
+- **Node.js** - JavaScript runtime environment
+- **TypeScript 5** - Typed JavaScript superset
+
+### Framework
+- **Next.js API Routes** - Integrated REST endpoints
+- **Next.js Middleware** - Request interception
+
+### Authentication
+- **NextAuth.js** - Complete authentication system
+  - OAuth 2.0 (Google)
+  - Credentials (email/password)
+  - JWT sessions
+  - Email verification
+
+---
+
+## Database
+
+### Main Database
+- **PostgreSQL** - Relational database
+  - ACID transactions
+  - Optimized indexes
+  - Multi-tenant architecture
+  - Soft deletes
+
+### ORM
+- **Prisma 5.x** - Modern and type-safe ORM
+  - Automatic migrations
+  - Generated TypeScript types
+  - Optimized query builder
+  - Prisma Studio (GUI)
+
+### Cache
+- **Redis** - In-memory storage
+  - Distributed rate limiting
+  - Session storage
+  - Configuration caching
+  - Multi-worker synchronization
+
+---
+
+## Blockchain
+
+### Blockchain Network
+- **Base Mainnet** - Main network
+  - Chain ID: 30 (0x1e)
+  - Ethereum compatible
+  - Verified smart contracts
+
+### Smart Contracts
+- **Solidity ^0.8.24** - Contract language
+- **OpenZeppelin v5.x** - Security libraries
+- **Foundry** - Testing framework
+
+### Web3 Integration
+- **WalletConnect** - Wallet connection
+- **Ethers.js / Web3.js** - Blockchain interaction
+- **MetaMask / WalletConnect** - Supported wallets
+
+### Verified Contract
+- **Address**: `0xF95469254Fe9811D8101b673743E3A4735c9582B`
+- **Explorer**: [BaseScan](https://basescan.org/address/0xF95469254Fe9811D8101b673743E3A4735c9582B)
+- **Functionality**: NFT certificate minting
+
+---
+
+## Security
+
+### Anti-Bot Protection
+- **hCaptcha** - CAPTCHA verification
+- **reCAPTCHA v3** - Invisible bot detection
+- **Risk Scoring** - Risk scoring system
+
+### Validation and Sanitization
+- **Zod** - TypeScript schema validation
+- **Manual sanitization** - Input cleaning
+
+### Rate Limiting
+- **Redis-based** - Distributed rate limiting
+- **Per-endpoint configurations** - Custom limits
+
+### Auditing
+- **AuditLog** - Complete change logging
+- **UserActivity** - Activity tracking
+- **FacebookEventLog** - Analytics integration
+
+---
+
+## Infrastructure and DevOps
+
+### Hosting
+- **Vercel / Similar** - Next.js hosting
+- **PM2** - Node.js process management
+- **Multi-worker** - Horizontal scaling
+
+### Monitoring
+- **Structured logging** - Console logs
+- **Error tracking** - Error handling
+- **Performance monitoring** - Performance metrics
+
+### Email
+- **SendGrid** - Transactional email service
+  - Email verification
+  - Notifications
+  - Custom templates
+
+---
+
+## Testing and Quality
+
+### Smart Contract Testing
+- **Foundry** - Testing framework
+- **38 tests** - Complete suite
+- **100% passing** - All tests passing
+- **Fuzz testing** - 512 runs
+
+### Security Testing
+- **OWASP ZAP** - Vulnerability scanning
+- **Snyk** - Dependency analysis
+- **npm audit** - Package auditing
+
+### Quality Assurance
+- **QA Testing Suite** - Automated tests
+- **Load Testing** - Load testing
+- **Penetration Testing** - Pentesting guide
+
+---
+
+## Internationalization
+
+### Supported Languages
+- **Spanish** - Primary language
+- **English** - Secondary language
+- **Translation system** - Database + files
+
+### Implementation
+- **next-intl / i18next** - i18n framework
+- **Translation tables** - Database translations
+- **Translation jobs** - Automated jobs
+
+---
+
+## APIs and External Services
+
+### Blockchain APIs
+- **BaseScan API** - Blockchain explorer
+- **CoinGecko API** - Cryptocurrency prices
+- **RPC Nodes** - Base connection
+
+### Third-Party Services
+- **Google OAuth** - Social authentication
+- **SendGrid** - Transactional emails
+- **hCaptcha** - Anti-bot protection
+- **Facebook Pixel** - Analytics and tracking
+
+---
+
+## Development Tools
+
+### Build Tools
+- **TypeScript** - Compiler
+- **ESLint** - Code linter
+- **PostCSS** - CSS processing
+- **Tailwind CSS** - Style compilation
+
+### Version Control
+- **Git** - Version control
+- **GitHub** - Remote repository
+
+### Package Manager
+- **npm** - Node.js package manager
+
+---
+
+## Architecture
+
+### Architecture Pattern
+- **Multi-tenant** - Company isolation
+- **RESTful API** - REST endpoints
+- **Server-Side Rendering** - SSR with Next.js
+- **Component-based** - React architecture
+
+### Layer Separation
+```
+Frontend (Next.js/React)
+    ↓
+API Routes (Next.js)
+    ↓
+Business Logic (TypeScript)
+    ↓
+Data Access (Prisma ORM)
+    ↓
+PostgreSQL Database
+```
+
+### Cache and Performance
+- **Redis** - Distributed cache
+- **Next.js Image Optimization** - Automatic optimization
+- **Code Splitting** - Lazy loading
+- **Static Generation** - Static pages
+
+---
+
+## Versions and Compatibility
+
+### Main Versions
+| Technology | Version |
+|------------|---------|
+| Node.js | 20.x (LTS) |
+| Next.js | 15.3.3 |
+| React | 19.2.0 |
+| TypeScript | 5.x |
+| Prisma | 5.x |
+| PostgreSQL | 14+ |
+| Redis | 7+ |
+| Solidity | ^0.8.24 |
+
+### Compatibility
+- **Browsers**: Chrome, Firefox, Safari, Edge (latest 2 versions)
+- **Devices**: Desktop, Tablet, Mobile (responsive)
+- **Blockchain**: Base Mainnet, Testnet
+
+---
+
+## Main Dependencies
+
+### Production
+```json
+{
+  "next": "16.0.3",
+  "react": "19.2.0",
+  "react-dom": "19.2.0",
+  "prisma": "5.x",
+  "next-auth": "latest",
+  "ethers": "latest"
+}
+```
+
+### Development
+```json
+{
+  "typescript": "^5",
+  "eslint": "^9",
+  "tailwindcss": "^4",
+  "@types/node": "^20",
+  "@types/react": "^19"
+}
+```
+
+---
+
+## Scalability Considerations
+
+### Database
+- **Optimized indexes** - Fast queries
+- **Partitioning by companyId** - Efficient multi-tenant
+- **Connection pooling** - Connection management
+
+### Application
+- **PM2 clustering** - Multiple workers
+- **Distributed Redis** - Worker synchronization
+- **CDN** - Static content
+
+### Blockchain
+- **Gas optimization** - Efficient transactions
+- **Batch operations** - Grouped operations
+- **Transaction queuing** - Queue management
+
+---
+
+## Security and Compliance
+
+### Standards
+- **OWASP Top 10** - Implemented protection
+- **GDPR** - Privacy compliance
+- **Best Practices** - Security best practices
+
+### Implemented Measures
+- ✅ Robust authentication
+- ✅ Rate limiting
+- ✅ Anti-bot protection
+- ✅ Data validation
+- ✅ Complete auditing
+- ✅ Sensitive data encryption
+
+---
+
+## Resources and Documentation
+
+### Technical Documentation
+- [Database Architecture](/docs/technical/database-architecture)
+- [Security Audit](/docs/security/security-audit)
+- [Pentesting Guide](/docs/security/penetration-testing-guide)
+- [ZAP Report](/docs/security/zap-security-report)
+
+### Useful Links
+- **Platform**: [https://vquest.example.com/es](https://vquest.example.com/es)
+- **Smart Contract**: [BaseScan](https://basescan.org/address/0xF95469254Fe9811D8101b673743E3A4735c9582B)
+- **Repository**: [GitHub](https://github.com/vquest-platform)
+
+---
+
+**Last updated**: November 2025

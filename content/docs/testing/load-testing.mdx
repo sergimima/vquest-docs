@@ -3,20 +3,20 @@ title: Load Test Report
 description: Performance and scalability testing results
 ---
 
-# 🚀 Load Test Report
+# Load Test Report
 
-## 📋 Executive Summary
+## Executive Summary
 
-Load testing performed on **RSK Quest Hub** production environment to evaluate system performance and scalability under concurrent user load.
+Load testing performed on **VQuest** production environment to evaluate system performance and scalability under concurrent user load.
 
 **Test Date**: October 10, 2025
-**Platform**: [https://rskquesthub.xyz/es](https://rskquesthub.xyz/es)
+**Platform**: [https://vquest.example.com/es](https://vquest.example.com/es)
 **Tool Used**: Artillery (v2.x)
 **Test Type**: HTTP Load Testing
 
 ---
 
-## 🎯 Test Objectives
+## Test Objectives
 
 - Evaluate server response time under normal and peak load
 - Determine maximum concurrent user capacity
@@ -26,10 +26,10 @@ Load testing performed on **RSK Quest Hub** production environment to evaluate s
 
 ---
 
-## 🔧 Test Configuration
+## Test Configuration
 
 ### Test Environment
-- **Target URL**: https://rskquesthub.xyz/es
+- **Target URL**: https://vquest.example.com/es
 - **Protocol**: HTTPS
 - **Test Origin**: Local machine (simulating distributed users)
 - **Network**: Public internet
@@ -41,7 +41,7 @@ Load testing performed on **RSK Quest Hub** production environment to evaluate s
 
 ---
 
-## 📊 Test Results
+## Test Results
 
 ### Test 1: Normal Load (100 Concurrent Users)
 
@@ -118,7 +118,7 @@ Load testing performed on **RSK Quest Hub** production environment to evaluate s
 
 ---
 
-## 📈 Performance Comparison
+## Performance Comparison
 
 ### Response Time Analysis
 
@@ -144,9 +144,9 @@ Load testing performed on **RSK Quest Hub** production environment to evaluate s
 
 ---
 
-## 🎯 Key Findings
+## Key Findings
 
-### ✅ Strengths
+### Strengths
 
 1. **Stable at Normal Load**
    - 100% success rate with 100 concurrent users
@@ -161,7 +161,7 @@ Load testing performed on **RSK Quest Hub** production environment to evaluate s
    - Even under stress, no complete server crashes
    - Graceful degradation under extreme load
 
-### ⚠️ Limitations
+### Limitations
 
 1. **Scalability Bottleneck**
    - Performance degrades significantly above 100-300 concurrent users
@@ -178,7 +178,7 @@ Load testing performed on **RSK Quest Hub** production environment to evaluate s
 
 ---
 
-## 💡 Recommendations
+## Recommendations
 
 ### Immediate Actions
 
@@ -220,7 +220,7 @@ Load testing performed on **RSK Quest Hub** production environment to evaluate s
 
 ---
 
-## 📊 Performance Metrics Summary
+## Performance Metrics Summary
 
 ### Overall System Performance
 
@@ -245,18 +245,18 @@ Load testing performed on **RSK Quest Hub** production environment to evaluate s
 
 ---
 
-## 🔍 Test Methodology
+## Test Methodology
 
 ### Test Execution Commands
 
 **Baseline Test** (100 users):
 ```bash
-artillery quick --count 100 -n 20 https://rskquesthub.xyz/es
+artillery quick --count 100 -n 20 https://vquest.example.com/es
 ```
 
 **Stress Test** (1000 users):
 ```bash
-artillery quick --count 1000 -n 20 https://rskquesthub.xyz/es
+artillery quick --count 1000 -n 20 https://vquest.example.com/es
 ```
 
 ### Metrics Collected
@@ -276,9 +276,9 @@ artillery quick --count 1000 -n 20 https://rskquesthub.xyz/es
 
 ---
 
-## ✅ Conclusion
+## Conclusion
 
-The RSK Quest Hub platform demonstrates **solid performance under normal load conditions** with 100% success rate for up to 100 concurrent users and consistent response times around 1.4 seconds.
+The VQuest platform demonstrates **solid performance under normal load conditions** with 100% success rate for up to 100 concurrent users and consistent response times around 1.4 seconds.
 
 However, the system shows **scalability limitations** when subjected to peak loads (1000 concurrent users), with response times increasing to ~4.9 seconds and a 27% user failure rate due to timeouts.
 
@@ -292,7 +292,7 @@ The platform is **production-ready for current usage levels** but requires optim
 
 ---
 
-## 📎 Related Documentation
+## Related Documentation
 
 - [QA Test Report](qa-testing.md)
 - [Quality Metrics](metrics.md)
