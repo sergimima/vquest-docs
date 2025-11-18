@@ -1,0 +1,489 @@
+---
+title: Guía de Pentesting
+description: Guía completa de pentesting para VW Activities Platform
+---
+
+# Guía de Pentesting - VW Activities Platform
+
+## 1. Preparación del Entorno
+
+### Requisitos
+```bash
+# Instalar herramientas
+npm install -g @lhci/cli  # Lighthouse CI
+npm install -g snyk       # Security vulnerabilities scanner
+
+# Docker para herramientas aisladas
+docker pull owasp/zap2docker-stable
+docker pull aquasec/trivy
+```
+
+## 2. Tests Automatizados
+
+### A. Vulnerabilidades en Dependencias
+
+```bash
+# Snyk - Escanear node_modules
+snyk test
+
+# NPM Audit
+npm audit
+
+# PNPM Audit (si usas pnpm)
+pnpm audit
+
+# Verificar CVEs conocidos
+npm audit --json > audit-report.json
+```
+
+### B. Análisis de Código Estático (SAST)
+
+```bash
+# ESLint con plugins de seguridad
+npm install --save-dev eslint-plugin-security
+
+# Añadir a .eslintrc.json
+{
+  "plugins": ["security"],
+  "extends": ["plugin:security/recommended"]
+}
+
+# Ejecutar
+npx eslint . --ext .ts,.tsx,.js,.jsx
+```
+
+### C. Escaneo Web con OWASP ZAP
+
+```bash
+# Baseline scan (pasivo, seguro)
+docker run -t owasp/zap2docker-stable zap-baseline.py \
+  -t https://staging.vquest.xyz \
+  -r zap-report.html
+
+# Full scan (activo, puede afectar)
+docker run -t owasp/zap2docker-stable zap-full-scan.py \
+  -t https://staging.vquest.xyz \
+  -r zap-full-report.html
+```
+
+### D. Tests de Seguridad de APIs
+
+```bash
+# Instalar
+npm install -g newman
+
+# Crear colección Postman con tests
+# Ejecutar
+newman run pentesting-collection.json -e production.json
+```
+
+## 3. Tests Manuales Críticos
+
+### A. Autenticación
+
+**Test 1: Bypass de Login**
+```bash
+# Intentar acceso sin token
+curl https://api.vquest.xyz/api/admin/users \
+  -H "Content-Type: application/json"
+
+# Esperado: 401 Unauthorized
+```
+
+**Test 2: JWT Manipulation**
+```bash
+# Decodificar JWT
+echo "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." | base64 -d
+
+# Intentar cambiar role a SUPER_ADMIN
+# Esperado: Signature verification failed
+```
+
+**Test 3: Session Fixation**
+```bash
+# Intentar reusar token expirado
+# Esperado: 401 Unauthorized
+```
+
+### B. Autorización (RBAC)
+
+**Test 4: Privilege Escalation**
+```typescript
+// Como END_USER, intentar:
+POST /api/admin/users/create
+POST /api/companies/create
+
+// Esperado: 403 Forbidden
+```
+
+**Test 5: Multi-tenant Isolation**
+```typescript
+// Usuario de Company A intenta acceder a datos de Company B
+GET /api/campaigns/{campaignId_de_otra_empresa}
+
+// Esperado: 404 Not Found o 403 Forbidden
+```
+
+### C. Inyección
+
+**Test 6: SQL Injection (Prisma debería proteger)**
+```bash
+# Intentar en query params
+GET /api/users?email=' OR '1'='1
+
+# Intentar en body
+POST /api/auth/signin
+{
+  "email": "admin' OR '1'='1--",
+  "password": "anything"
+}
+
+# Esperado: Error de validación, no SQL error
+```
+
+**Test 7: NoSQL Injection**
+```bash
+POST /api/campaigns
+{
+  "title": { "$gt": "" }
+}
+
+# Esperado: Validación rechaza objetos
+```
+
+**Test 8: XSS (Stored)**
+```bash
+POST /api/campaigns
+{
+  "title": "<script>alert('XSS')</script>",
+  "description": "<img src=x onerror=alert('XSS')>"
+}
+
+# Esperado: Escapado automático por React
+```
+
+### D. Rate Limiting
+
+**Test 9: Brute Force Protection**
+```bash
+# Intentar 100 logins en 1 minuto
+for i in {1..100}; do
+  curl -X POST https://api.vquest.xyz/api/auth/signin \
+    -d '{"email":"test@test.com","password":"wrong"}' &
+done
+
+# Esperado: 429 Too Many Requests después de N intentos
+```
+
+**Test 10: API Rate Limiting**
+```bash
+# Spam a endpoint protegido
+for i in {1..200}; do
+  curl https://api.vquest.xyz/api/gems/balance \
+    -H "Authorization: Bearer $TOKEN" &
+done
+
+# Esperado: 429 después de límite configurado
+```
+
+### E. CAPTCHA Bypass
+
+**Test 11: Registro sin CAPTCHA**
+```bash
+POST /api/auth/register
+{
+  "email": "bot@test.com",
+  "password": "password123",
+  "captchaToken": ""  # Sin token
+}
+
+# Esperado: 400 Bad Request
+```
+
+**Test 12: CAPTCHA Reutilizado**
+```bash
+# Usar mismo token 2 veces
+# Esperado: 'invalid-or-already-seen-response'
+```
+
+### F. Crypto/Pagos
+
+**Test 13: Double Spending**
+```bash
+# Intentar usar mismo txHash 2 veces
+POST /api/gamepass/confirm
+{
+  "transactionId": "tx_already_used"
+}
+
+# Esperado: 400 "Transaction already processed"
+```
+
+**Test 14: Price Manipulation**
+```bash
+# Intentar modificar precio en request
+POST /api/gamepass/purchase
+{
+  "gamePassId": "xxx",
+  "cryptoAmount": "0.0001",  # Menor al real
+  "cryptoCurrency": "BTC"
+}
+
+# Esperado: Server valida precio real
+```
+
+### G. File Upload
+
+**Test 15: Malicious File Upload**
+```bash
+# Intentar subir .exe, .sh, .php
+POST /api/upload
+Content-Type: multipart/form-data
+
+# Esperado: Validación de tipo MIME
+```
+
+**Test 16: Path Traversal**
+```bash
+POST /api/upload
+{
+  "filename": "../../etc/passwd"
+}
+
+# Esperado: Sanitización de path
+```
+
+### H. Business Logic
+
+**Test 17: Negative Gems**
+```bash
+POST /api/gems/spend
+{
+  "amount": -1000  # Intentar "gastar" negativo = ganar
+}
+
+# Esperado: Validación rechaza negativos
+```
+
+**Test 18: Activity Re-submission**
+```bash
+# Completar actividad 2 veces para duplicar recompensa
+POST /api/activities/{id}/submit
+# (repetir inmediatamente)
+
+# Esperado: Constraint unique [userId, activityId]
+```
+
+**Test 19: Referral Loop**
+```bash
+# Usuario A refiere a B, B refiere a A
+# Esperado: Validación previene loops
+```
+
+## 4. Tests de Infraestructura
+
+### A. Headers de Seguridad
+
+```bash
+curl -I https://vquest.xyz
+
+# Verificar headers:
+# ✅ Strict-Transport-Security
+# ✅ X-Content-Type-Options: nosniff
+# ✅ X-Frame-Options: DENY
+# ✅ Content-Security-Policy
+# ✅ Referrer-Policy
+```
+
+### B. SSL/TLS
+
+```bash
+# SSLLabs scan
+https://www.ssllabs.com/ssltest/analyze.html?d=vquest.xyz
+
+# Esperado: A o A+
+```
+
+### C. DNS Security
+
+```bash
+# Verificar DNSSEC
+dig +dnssec vquest.xyz
+
+# Verificar SPF/DKIM/DMARC para emails
+dig TXT vquest.xyz
+```
+
+## 5. Herramientas Recomendadas
+
+### Escaners Automáticos
+```bash
+# OWASP ZAP
+docker run -t owasp/zap2docker-stable zap-baseline.py -t https://vquest.xyz
+
+# Nikto
+nikto -h https://vquest.xyz -ssl
+
+# Nmap (port scanning)
+nmap -sV -sC vquest.xyz
+
+# Wappalyzer (tech stack detection)
+# https://www.wappalyzer.com/
+```
+
+### Code Analysis
+```bash
+# Semgrep (SAST)
+semgrep --config=auto .
+
+# CodeQL (GitHub Advanced Security)
+# Activar en repositorio GitHub
+
+# SonarQube
+docker run -d --name sonarqube -p 9000:9000 sonarqube
+```
+
+### Dependency Scanning
+```bash
+# Snyk
+snyk test
+snyk monitor
+
+# Trivy (containers)
+docker run aquasec/trivy image node:20-alpine
+
+# Dependabot (GitHub)
+# Activar en Settings > Security
+```
+
+## 6. Checklist de Pentesting
+
+### Pre-Test
+- [ ] Entorno de staging listo
+- [ ] Backup de base de datos
+- [ ] Usuarios de prueba creados
+- [ ] Rate limits temporalmente relajados
+- [ ] Logging aumentado
+
+### Durante Test
+- [ ] SQL Injection attempts
+- [ ] XSS attempts (stored, reflected, DOM)
+- [ ] CSRF protection
+- [ ] Authentication bypass
+- [ ] Authorization/RBAC bypass
+- [ ] Session management
+- [ ] Rate limiting effectiveness
+- [ ] CAPTCHA bypass attempts
+- [ ] File upload validation
+- [ ] API security
+- [ ] Business logic flaws
+- [ ] Crypto/payment manipulation
+- [ ] Multi-tenant isolation
+
+### Post-Test
+- [ ] Generar reporte de hallazgos
+- [ ] Clasificar por severidad (Critical, High, Medium, Low)
+- [ ] Crear tickets para cada vulnerabilidad
+- [ ] Re-test después de fixes
+- [ ] Actualizar documentación de seguridad
+
+## 7. Reporte de Vulnerabilidades
+
+### Template de Hallazgo
+
+```markdown
+# VULN-001: [Título de la Vulnerabilidad]
+
+## Severidad
+🔴 Critical / 🟠 High / 🟡 Medium / 🟢 Low
+
+## Descripción
+[Qué es la vulnerabilidad]
+
+## Impacto
+[Qué puede hacer un atacante]
+
+## Pasos para Reproducir
+1. Ir a...
+2. Hacer...
+3. Observar...
+
+## Prueba de Concepto (PoC)
+```bash
+curl -X POST https://api.vquest.xyz/endpoint \
+  -d '{"malicious": "payload"}'
+```
+
+## Remediación
+[Cómo arreglarlo]
+
+## Referencias
+- OWASP: https://...
+- CWE: https://...
+```
+
+## 8. Cronograma Sugerido
+
+### Fase 1: Automated Scans (1-2 días)
+- Dependency scanning (npm audit, snyk)
+- SAST (ESLint security, Semgrep)
+- DAST (OWASP ZAP baseline)
+
+### Fase 2: Manual Testing (3-5 días)
+- Authentication/Authorization
+- Injection attacks
+- Business logic
+- API security
+
+### Fase 3: Infrastructure (1 día)
+- SSL/TLS
+- Headers
+- DNS
+- Server configuration
+
+### Fase 4: Reporting (1 día)
+- Compilar hallazgos
+- Clasificar severidades
+- Escribir recomendaciones
+
+**Total: 1-2 semanas** (dependiendo de profundidad)
+
+## 9. Costos Estimados
+
+### DIY (Tú mismo)
+- Tiempo: 1-2 semanas
+- Costo: $0 (herramientas open source)
+- Cobertura: 60-70%
+
+### Herramientas Pagas
+- Snyk Pro: ~$50-100/mes
+- OWASP ZAP + Nuclei: Gratis
+- Total: ~$100/mes
+
+### Pentesting Profesional
+- Junior consultancy: $2,000-5,000
+- Mid-tier (Cobalt, Synack): $5,000-10,000
+- Enterprise (Big4): $15,000-50,000+
+
+### Recomendación
+**Híbrido**:
+1. DIY automated scans (gratis)
+2. Manual testing crítico (tú mismo)
+3. External review cada 6-12 meses ($3k-5k)
+
+## 10. Recursos
+
+### Aprender
+- [OWASP Web Security Testing Guide](https://owasp.org/www-project-web-security-testing-guide/)
+- [PortSwigger Web Security Academy](https://portswigger.net/web-security)
+- [HackTheBox](https://www.hackthebox.com/)
+
+### Herramientas
+- [OWASP ZAP](https://www.zaproxy.org/)
+- [Burp Suite Community](https://portswigger.net/burp/communitydownload)
+- [Nuclei](https://github.com/projectdiscovery/nuclei)
+
+### Comunidades
+- [r/netsec](https://reddit.com/r/netsec)
+- [BugBountyForum](https://bugbountyforum.com/)
+- [HackerOne Hacktivity](https://hackerone.com/hacktivity)

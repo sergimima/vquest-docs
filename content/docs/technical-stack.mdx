@@ -1,0 +1,343 @@
+---
+title: Stack Técnico
+description: Tecnologías, frameworks y herramientas utilizadas en la plataforma
+---
+
+# 🛠️ Stack Técnico - VW Activities Platform
+
+## Resumen Ejecutivo
+
+La plataforma VW Activities está construida con tecnologías modernas y escalables, siguiendo las mejores prácticas de la industria para aplicaciones web empresariales.
+
+---
+
+## Frontend
+
+### Framework Principal
+- **Next.js 15.3.3** - Framework React para producción
+  - Server-Side Rendering (SSR)
+  - Static Site Generation (SSG)
+  - API Routes integradas
+  - Optimización automática de imágenes
+  - Code splitting automático
+
+### Librerías de UI
+- **React 19.2.0** - Biblioteca de interfaz de usuario
+- **React DOM 19.2.0** - Renderizado de React
+- **Tailwind CSS 4** - Framework de utilidades CSS
+- **Fumadocs UI** - Sistema de documentación
+
+### Gestión de Estado
+- **NextAuth.js** - Autenticación y gestión de sesiones
+- **React Context API** - Estado global de la aplicación
+
+---
+
+## Backend
+
+### Runtime
+- **Node.js** - Entorno de ejecución JavaScript
+- **TypeScript 5** - Superset tipado de JavaScript
+
+### Framework
+- **Next.js API Routes** - Endpoints REST integrados
+- **Next.js Middleware** - Interceptación de requests
+
+### Autenticación
+- **NextAuth.js** - Sistema de autenticación completo
+  - OAuth 2.0 (Google)
+  - Credenciales (email/password)
+  - JWT sessions
+  - Email verification
+
+---
+
+## Base de Datos
+
+### Base de Datos Principal
+- **PostgreSQL** - Base de datos relacional
+  - Transacciones ACID
+  - Índices optimizados
+  - Multi-tenant architecture
+  - Soft deletes
+
+### ORM
+- **Prisma 5.x** - ORM moderno y type-safe
+  - Migraciones automáticas
+  - TypeScript types generados
+  - Query builder optimizado
+  - Prisma Studio (GUI)
+
+### Caché
+- **Redis** - Almacenamiento en memoria
+  - Rate limiting distribuido
+  - Session storage
+  - Caché de configuraciones
+  - Sincronización multi-worker
+
+---
+
+## Blockchain
+
+### Red Blockchain
+- **Rootstock (RSK) Mainnet** - Red principal
+  - Chain ID: 30 (0x1e)
+  - Compatible con Ethereum
+  - Smart contracts verificados
+
+### Smart Contracts
+- **Solidity ^0.8.24** - Lenguaje de contratos
+- **OpenZeppelin v5.x** - Librerías de seguridad
+- **Foundry** - Framework de testing
+
+### Integración Web3
+- **WalletConnect** - Conexión de wallets
+- **Ethers.js / Web3.js** - Interacción con blockchain
+- **MetaMask / WalletConnect** - Wallets soportadas
+
+### Contrato Verificado
+- **Dirección**: `0x73a488485fe3c2643664b2957af480cdb5ce46d9`
+- **Explorador**: [Blockscout](https://rootstock.blockscout.com/address/0x73a488485fe3c2643664b2957af480cdb5ce46d9)
+- **Funcionalidad**: Minting de certificados NFT
+
+---
+
+## Seguridad
+
+### Protección Anti-Bot
+- **hCaptcha** - Verificación CAPTCHA
+- **reCAPTCHA v3** - Detección de bots invisible
+- **Risk Scoring** - Sistema de puntuación de riesgo
+
+### Validación y Sanitización
+- **Zod** - Validación de esquemas TypeScript
+- **Sanitización manual** - Limpieza de inputs
+
+### Rate Limiting
+- **Redis-based** - Rate limiting distribuido
+- **Configuraciones por endpoint** - Límites personalizados
+
+### Auditoría
+- **AuditLog** - Registro completo de cambios
+- **UserActivity** - Tracking de actividad
+- **FacebookEventLog** - Integración con analytics
+
+---
+
+## Infraestructura y DevOps
+
+### Hosting
+- **Vercel / Similar** - Hosting de Next.js
+- **PM2** - Gestión de procesos Node.js
+- **Multi-worker** - Escalado horizontal
+
+### Monitoreo
+- **Logging estructurado** - Console logs
+- **Error tracking** - Manejo de errores
+- **Performance monitoring** - Métricas de rendimiento
+
+### Email
+- **SendGrid** - Servicio de emails transaccionales
+  - Verificación de email
+  - Notificaciones
+  - Templates personalizados
+
+---
+
+## Testing y Calidad
+
+### Testing de Smart Contracts
+- **Foundry** - Framework de testing
+- **38 tests** - Suite completa
+- **100% passing** - Todos los tests pasando
+- **Fuzz testing** - 512 runs
+
+### Testing de Seguridad
+- **OWASP ZAP** - Escaneo de vulnerabilidades
+- **Snyk** - Análisis de dependencias
+- **npm audit** - Auditoría de paquetes
+
+### Quality Assurance
+- **QA Testing Suite** - Tests automatizados
+- **Load Testing** - Pruebas de carga
+- **Penetration Testing** - Guía de pentesting
+
+---
+
+## Internacionalización
+
+### Idiomas Soportados
+- **Español** - Idioma principal
+- **Inglés** - Idioma secundario
+- **Sistema de traducciones** - Base de datos + archivos
+
+### Implementación
+- **next-intl / i18next** - Framework de i18n
+- **Translation tables** - Traducciones en BD
+- **Translation jobs** - Trabajos automáticos
+
+---
+
+## APIs y Servicios Externos
+
+### Blockchain APIs
+- **Blockscout API** - Explorador de blockchain
+- **CoinGecko API** - Precios de criptomonedas
+- **RPC Nodes** - Conexión a Rootstock
+
+### Servicios de Terceros
+- **Google OAuth** - Autenticación social
+- **SendGrid** - Emails transaccionales
+- **hCaptcha** - Protección anti-bot
+- **Facebook Pixel** - Analytics y tracking
+
+---
+
+## Herramientas de Desarrollo
+
+### Build Tools
+- **TypeScript** - Compilador
+- **ESLint** - Linter de código
+- **PostCSS** - Procesamiento de CSS
+- **Tailwind CSS** - Compilación de estilos
+
+### Version Control
+- **Git** - Control de versiones
+- **GitHub** - Repositorio remoto
+
+### Package Manager
+- **npm** - Gestor de paquetes Node.js
+
+---
+
+## Arquitectura
+
+### Patrón de Arquitectura
+- **Multi-tenant** - Aislamiento por empresa
+- **RESTful API** - Endpoints REST
+- **Server-Side Rendering** - SSR con Next.js
+- **Component-based** - Arquitectura React
+
+### Separación de Capas
+```
+Frontend (Next.js/React)
+    ↓
+API Routes (Next.js)
+    ↓
+Business Logic (TypeScript)
+    ↓
+Data Access (Prisma ORM)
+    ↓
+PostgreSQL Database
+```
+
+### Caché y Performance
+- **Redis** - Caché distribuido
+- **Next.js Image Optimization** - Optimización automática
+- **Code Splitting** - Carga diferida
+- **Static Generation** - Páginas estáticas
+
+---
+
+## Versiones y Compatibilidad
+
+### Versiones Principales
+| Tecnología | Versión |
+|------------|---------|
+| Node.js | 20.x (LTS) |
+| Next.js | 15.3.3 |
+| React | 19.2.0 |
+| TypeScript | 5.x |
+| Prisma | 5.x |
+| PostgreSQL | 14+ |
+| Redis | 7+ |
+| Solidity | ^0.8.24 |
+
+### Compatibilidad
+- **Navegadores**: Chrome, Firefox, Safari, Edge (últimas 2 versiones)
+- **Dispositivos**: Desktop, Tablet, Mobile (responsive)
+- **Blockchain**: Rootstock Mainnet, Testnet
+
+---
+
+## Dependencias Principales
+
+### Producción
+```json
+{
+  "next": "16.0.3",
+  "react": "19.2.0",
+  "react-dom": "19.2.0",
+  "prisma": "5.x",
+  "next-auth": "latest",
+  "ethers": "latest"
+}
+```
+
+### Desarrollo
+```json
+{
+  "typescript": "^5",
+  "eslint": "^9",
+  "tailwindcss": "^4",
+  "@types/node": "^20",
+  "@types/react": "^19"
+}
+```
+
+---
+
+## Consideraciones de Escalabilidad
+
+### Base de Datos
+- **Índices optimizados** - Queries rápidas
+- **Particionamiento por companyId** - Multi-tenant eficiente
+- **Connection pooling** - Gestión de conexiones
+
+### Aplicación
+- **PM2 clustering** - Múltiples workers
+- **Redis distribuido** - Sincronización entre workers
+- **CDN** - Contenido estático
+
+### Blockchain
+- **Gas optimization** - Transacciones eficientes
+- **Batch operations** - Operaciones agrupadas
+- **Transaction queuing** - Gestión de colas
+
+---
+
+## Seguridad y Cumplimiento
+
+### Estándares
+- **OWASP Top 10** - Protección implementada
+- **GDPR** - Cumplimiento de privacidad
+- **Best Practices** - Mejores prácticas de seguridad
+
+### Medidas Implementadas
+- ✅ Autenticación robusta
+- ✅ Rate limiting
+- ✅ Anti-bot protection
+- ✅ Validación de datos
+- ✅ Auditoría completa
+- ✅ Encriptación de datos sensibles
+
+---
+
+## Recursos y Documentación
+
+### Documentación Técnica
+- [Arquitectura de Base de Datos](/docs/database-architecture)
+- [Análisis de Seguridad](/docs/security-analysis)
+- [Guía de Pentesting](/docs/penetration-testing-guide)
+- [Reporte ZAP](/docs/zap-security-report)
+
+### Enlaces Útiles
+- **Plataforma**: [https://rskquesthub.xyz/es](https://rskquesthub.xyz/es)
+- **Smart Contract**: [Blockscout](https://rootstock.blockscout.com/address/0x73a488485fe3c2643664b2957af480cdb5ce46d9)
+- **Repositorio**: [GitHub](https://github.com/sergimima/rskquest-public)
+
+---
+
+**Última actualización**: Octubre 2025  
+**Versión de la plataforma**: 2.0 (Milestone 2)
+

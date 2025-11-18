@@ -1,0 +1,766 @@
+---
+title: Análisis de Seguridad
+description: Análisis exhaustivo de seguridad de VW Activities Platform
+---
+
+# Análisis de Seguridad - VW Activities Platform
+
+## Resumen Ejecutivo
+
+Este documento presenta un análisis exhaustivo de las medidas de seguridad implementadas en la plataforma VW Activities. El sistema cuenta con múltiples capas de protección contra amenazas comunes, incluyendo autenticación robusta, rate limiting, anti-bot, validación de datos, y auditoría completa.
+
+**Estado General**: ✅ La plataforma cuenta con medidas de seguridad defensivas sólidas
+
+---
+
+## 1. Autenticación y Autorización
+
+### 1.1 Sistema de Autenticación (NextAuth.js)
+
+**Archivo**: [src/lib/auth.ts](../src/lib/auth.ts)
+
+#### Características Implementadas:
+
+✅ **Multi-Provider Authentication**
+- Credenciales (email/password)
+- OAuth 2.0 con Google
+- Extensible para más providers
+
+✅ **Protección de Contraseñas**
+- Hashing con bcrypt (algoritmo bcryptjs)
+- Contraseñas nunca almacenadas en texto plano
+- Comparación segura con timing-attack protection
+
+✅ **Sesiones JWT**
+```typescript
+session: {
+  strategy: 'jwt',
+  maxAge: 30 * 24 * 60 * 60, // 30 días
+}
+```
+- Tokens firmados con NEXTAUTH_SECRET
+- No requieren almacenamiento server-side
+- Auto-expiración configurada
+
+✅ **Verificación de Email Obligatoria**
+```typescript
+if (!user.emailVerified) {
+  throw new Error('EMAIL_NOT_VERIFIED:Debes verificar tu email...');
+}
+```
+- Previene cuentas fraudulentas
+- Flujo de verificación por email
+- Tokens de verificación únicos con expiración
+
+✅ **Integración CAPTCHA en Login**
+```typescript
+const captchaResult = await verifyCaptcha(
+  credentials.captchaToken,
+  credentials.clientIp
+);
+```
+- Protección contra bots en login
+- Validación con hCaptcha
+- Registro de intentos fallidos
+
+#### Sistema de Roles (RBAC)
+
+**Roles Implementados**:
+- `SUPER_ADMIN` - Administrador global
+- `COMPANY_ADMIN` - Administrador por empresa
+- `CAMPAIGN_CREATOR` - Creador de campañas
+- `END_USER` - Usuario final
+
+**Archivo Middleware**: [src/middleware.ts](../src/middleware.ts)
+
+```typescript
+const token = await getToken({ req: request });
+if (!token) {
+  // Redirect a login
+}
+```
+
+### 1.2 Protección de Rutas
+
+**Rutas Públicas Definidas**:
+```typescript
+const publicPaths = [
+  '/auth/signin',
+  '/auth/signup',
+  '/auth/forgot-password',
+  '/privacy',
+  '/terms',
+  // ...
+];
+```
+
+**Verificación Automática**:
+- Middleware intercepta todas las rutas protegidas
+- Redirección automática a login si no autenticado
+- Preservación de callback URL para UX
+
+---
+
+## 2. Protección Anti-Bot
+
+### 2.1 Sistema hCaptcha
+
+**Archivo**: [src/lib/captcha.ts](../src/lib/captcha.ts)
+
+#### Implementación:
+
+✅ **Verificación Server-Side**
+```typescript
+export async function verifyCaptcha(
+  token: string,
+  remoteip?: string
+): Promise<{ success: boolean; score?: number; errorCodes?: string[] }>
+```
+
+**Características**:
+- Validación con hCaptcha API oficial
+- Registro de IP del cliente (opcional)
+- Score de riesgo para actividades maliciosas
+- Manejo de errores detallado
+- Bypass configurable en desarrollo (`DISABLE_CAPTCHA=true`)
+
+✅ **Puntuación de Riesgo Adaptativa**
+```typescript
+export function shouldShowCaptcha(riskScore: number): boolean {
+  return riskScore >= 30 || process.env.NODE_ENV === 'production';
+}
+```
+
+**Casos de Uso**:
+- Registro de nuevos usuarios
+- Login con alta sospecha
+- Endpoints sensibles (gems, transfers)
+
+### 2.2 Tracking de IP y Detección de Patrones
+
+**Campos en User Model**:
+```prisma
+registrationIp       String?   // IP del registro
+registrationUserAgent String?  // User agent del registro
+riskScore            Int? @default(0) // Puntuación 0-100
+verificationSpeed    Int? // Segundos entre registro y verificación
+suspensionReason     String? // Razón de suspensión
+suspendedAt          DateTime? // Fecha de suspensión
+```
+
+**Índices para Performance**:
+```prisma
+@@index([registrationIp])    // Buscar por IP
+@@index([riskScore])         // Ordenar por riesgo
+@@index([suspensionReason])  // Filtrar suspendidos
+```
+
+### 2.3 Sistema Anti-Multicuentas (Wallets)
+
+**Modelo**: `UserWallet`
+
+**Campos Críticos**:
+```prisma
+model UserWallet {
+  walletAddress     String
+  network           String
+  transactionCount  Int @default(1)
+  riskFlags         Json? // Flags de riesgo detectados
+
+  @@unique([userId, walletAddress, network])
+  @@index([walletAddress]) // CRÍTICO
+  @@index([walletAddress, network]) // CRÍTICO
+}
+```
+
+**Detección**:
+- Una wallet usada por múltiples usuarios → Flag de riesgo
+- Tracking de volumen y frecuencia de transacciones
+- Metadata de primera/última transacción
+
+---
+
+## 3. Rate Limiting
+
+### 3.1 Implementación con Redis
+
+**Archivo**: [src/lib/rate-limit.ts](../src/lib/rate-limit.ts)
+
+#### Estrategia:
+
+✅ **Rate Limiting Distribuido**
+- Usa Redis para sincronización entre workers PM2
+- Migrado desde in-memory store (no funcional en multi-worker)
+- Ventana deslizante (sliding window)
+
+**Función Principal**:
+```typescript
+export async function rateLimit(
+  request: NextRequest,
+  options: {
+    windowMs: number;
+    maxRequests: number;
+    identifier?: string
+  },
+  userId?: string
+): Promise<{
+  success: boolean;
+  remaining: number;
+  resetTime: number;
+  error?: string
+}>
+```
+
+**Identificación**:
+```typescript
+const ip = request.headers.get('x-forwarded-for') ||
+           request.headers.get('x-real-ip') ||
+           'unknown';
+const key = identifier || `${ip}:${userId || 'anonymous'}`;
+```
+
+### 3.2 Configuraciones por Endpoint
+
+**Presets Definidos**:
+```typescript
+RATE_LIMIT_CONFIGS = {
+  GEMS_BALANCE: { windowMs: 60000, maxRequests: 60 },
+  GEMS_AWARD: { windowMs: 60000, maxRequests: 10 },
+  GEMS_SPEND: { windowMs: 60000, maxRequests: 20 },
+  GEMS_TRANSACTIONS: { windowMs: 60000, maxRequests: 30 }
+}
+```
+
+**Endpoints Protegidos**:
+- ✅ Operaciones con gemas (balance, award, spend, transactions)
+- ✅ Autenticación (register, login, verify-email)
+- ✅ Operaciones de exchange/crypto
+- ✅ APIs críticas (campaigns, activities, submissions)
+
+### 3.3 Limitación Conocida
+
+⚠️ **Edge Runtime Issue**:
+```typescript
+// middleware.ts línea 75-76
+// SEGURIDAD: Rate limiting DESHABILITADO (Redis no funciona en Edge Runtime)
+// TODO: Mover rate limiting a cada API route individualmente
+```
+
+**Estado Actual**:
+- Rate limiting NO activo en middleware global
+- Implementado individualmente en rutas críticas
+- Redis funcional en API routes (Node.js runtime)
+
+**Recomendación**:
+✅ Migrar todo rate limiting a nivel de API route (ya en progreso)
+
+---
+
+## 4. Detección de Actividad Sospechosa
+
+### 4.1 Análisis de Transacciones de Gemas
+
+**Archivo**: [src/lib/rate-limit.ts](../src/lib/rate-limit.ts:131-189)
+
+**Función**:
+```typescript
+export async function detectSuspiciousActivity(
+  userId: string,
+  amount: number,
+  source: string
+): Promise<{ suspicious: boolean; reasons: string[] }>
+```
+
+**Reglas Implementadas**:
+
+✅ **Frecuencia de Transacciones**
+```typescript
+if (recentTransactions > 100) {
+  reasons.push('Too many transactions in the last hour');
+}
+```
+
+✅ **Cantidades Anormales**
+```typescript
+if (amount > 10000) {
+  reasons.push('Unusually large amount');
+}
+```
+
+✅ **Patrones de Farming**
+```typescript
+if (source === 'activity_completion' && recentAwards > 50) {
+  reasons.push('Too many activity completions in short time');
+}
+```
+
+**Períodos Analizados**:
+- Última hora: transacciones rápidas
+- Último día: volumen total
+
+---
+
+## 5. Validación y Sanitización de Datos
+
+### 5.1 Validación de Inputs
+
+**Archivo**: [src/lib/rate-limit.ts](../src/lib/rate-limit.ts:62-113)
+
+**Función**:
+```typescript
+export function validateGemsData(data: any): {
+  valid: boolean;
+  errors: string[]
+}
+```
+
+**Validaciones Implementadas**:
+
+✅ **Amount**
+- Requerido
+- Tipo number positivo
+- Máximo: 1,000,000 gemas
+- Solo enteros
+
+✅ **Source**
+- Requerido, string
+- Máximo 100 caracteres
+
+✅ **Description**
+- Requerido, string
+- Máximo 500 caracteres
+
+✅ **Metadata (opcional)**
+- Tipo objeto (no array)
+- Máximo 2000 caracteres cuando serializado
+
+### 5.2 Sanitización de Datos
+
+**Función**:
+```typescript
+export function sanitizeGemsData(data: any) {
+  return {
+    amount: Math.floor(Math.abs(data.amount || 0)),
+    source: String(data.source || '').trim().slice(0, 100),
+    sourceId: data.sourceId ? String(data.sourceId).trim().slice(0, 50) : undefined,
+    description: String(data.description || '').trim().slice(0, 500),
+    metadata: data.metadata && typeof data.metadata === 'object' ? data.metadata : {}
+  };
+}
+```
+
+**Protecciones**:
+- Limpieza de espacios (trim)
+- Truncado de longitud máxima
+- Conversión de tipos forzada
+- Valores por defecto seguros
+
+---
+
+## 6. Auditoría y Logging
+
+### 6.1 Modelo AuditLog
+
+**Schema**:
+```prisma
+model AuditLog {
+  id          String   @id @default(cuid())
+  action      String
+  entityType  String
+  entityId    String
+  changes     Json     // Cambios realizados
+  metadata    Json?
+  performedBy String?  // Usuario que realizó la acción
+  ipAddress   String?
+  userAgent   String?
+  timestamp   DateTime @default(now())
+
+  @@index([action])
+  @@index([entityType, entityId])
+  @@index([performedBy])
+  @@index([timestamp])
+}
+```
+
+**Información Registrada**:
+- ✅ Qué acción se realizó
+- ✅ Sobre qué entidad (tipo + ID)
+- ✅ Cambios exactos (JSON diff)
+- ✅ Quién lo realizó (userId)
+- ✅ Desde dónde (IP + User Agent)
+- ✅ Cuándo (timestamp)
+
+### 6.2 UserActivity
+
+**Tracking de Actividad General**:
+```prisma
+model UserActivity {
+  id         String   @id @default(cuid())
+  userId     String
+  action     String
+  entityType String
+  entityId   String
+  metadata   Json?
+  timestamp  DateTime @default(now())
+
+  @@index([userId, timestamp])
+  @@index([action, timestamp])
+  @@index([entityType, entityId])
+}
+```
+
+### 6.3 FacebookEventLog
+
+**Integración con Facebook Pixel**:
+```prisma
+model FacebookEventLog {
+  eventName        String    // Purchase, Lead, CompleteRegistration
+  success          Boolean   // Si el envío fue exitoso
+  fbTraceId        String?   // ID de traza de Facebook
+  errorMessage     String?   // Error si falló
+
+  @@index([eventName, createdAt])
+  @@index([success, createdAt])
+}
+```
+
+**Eventos Rastreados**:
+- CompleteRegistration (registro de usuarios)
+- Lead (login)
+- Purchase (compras con crypto)
+
+---
+
+## 7. Seguridad en Pagos Crypto
+
+### 7.1 Modelo CryptoConfig
+
+**Configuración Segura de Wallets**:
+```prisma
+model CryptoConfig {
+  currency         String
+  network          String
+  chainId          Int
+  walletAddress    String?    // Wallet de recepción
+  contractAddress  String?    // Para tokens ERC20/BEP20
+  minConfirmations Int @default(3)
+
+  @@unique([currency, purpose, network])
+}
+```
+
+**Seguridad**:
+- ✅ Configuración centralizada
+- ✅ Múltiples confirmaciones requeridas
+- ✅ Separación por propósito (GAMEPASS_PAYMENT, REWARD_PAYMENT, GEM_EXCHANGE)
+- ✅ Validación de red y chainId
+
+### 7.2 Tracking de Transacciones
+
+**GamePassPurchase / ProductPurchase**:
+```prisma
+status           CryptoPaymentStatus // PENDING, CONFIRMED, FAILED, EXPIRED, REFUNDED
+transactionId    String @unique
+txHash           String?
+walletAddress    String // Wallet del comprador
+cryptoAmount     Decimal @db.Decimal(18, 8) // Precisión decimal
+```
+
+**Seguridad**:
+- ✅ Estados bien definidos
+- ✅ IDs únicos para prevenir duplicados
+- ✅ Registro de wallet address (anti-fraude)
+- ✅ Almacenamiento de txHash (verificación blockchain)
+
+---
+
+## 8. Protección de Endpoints API
+
+### 8.1 Verificación de Sesión
+
+**Patrón Común en API Routes**:
+```typescript
+const session = await getServerSession(authOptions);
+
+if (!session?.user) {
+  return NextResponse.json(
+    { error: 'No autorizado' },
+    { status: 401 }
+  );
+}
+```
+
+### 8.2 Verificación de Roles
+
+**Ejemplo de Control de Acceso**:
+```typescript
+if (session.user.role !== 'COMPANY_ADMIN' &&
+    session.user.role !== 'SUPER_ADMIN') {
+  return NextResponse.json(
+    { error: 'Permisos insuficientes' },
+    { status: 403 }
+  );
+}
+```
+
+### 8.3 Verificación de Compañía (Multi-tenant)
+
+**Aislamiento de Datos**:
+```typescript
+const campaign = await prisma.campaign.findFirst({
+  where: {
+    id: params.id,
+    companyId: session.user.companyId // CRÍTICO
+  }
+});
+```
+
+**Protección**:
+- ✅ Previene acceso cross-company
+- ✅ Filtrado automático por companyId
+- ✅ Validación en cada query
+
+---
+
+## 9. Protecciones Adicionales
+
+### 9.1 CORS
+
+**Configuración en Next.js**:
+- Controlado por framework (Next.js 15)
+- Headers personalizados si es necesario
+- Same-origin por defecto
+
+### 9.2 Soft Deletes
+
+**Campos deletedAt**:
+```prisma
+deletedAt DateTime?
+```
+
+**Beneficios**:
+- ✅ Recuperación de datos accidental
+- ✅ Auditoría completa
+- ✅ Cumplimiento normativo (GDPR)
+
+### 9.3 Encriptación de Tokens Sensibles
+
+**UserGitHubAccount**:
+```prisma
+accessToken     String  // ⚠️ Debería estar encriptado
+refreshToken    String?
+```
+
+**⚠️ Recomendación**: Implementar encriptación en BD para tokens OAuth
+
+---
+
+## 10. Vulnerabilidades y Recomendaciones
+
+### 10.1 Identificadas (Bajo Riesgo)
+
+⚠️ **Rate Limiting en Middleware Deshabilitado**
+- **Causa**: Redis no funciona en Edge Runtime
+- **Impacto**: Bajo (implementado en API routes individuales)
+- **Acción**: Continuar migración a API routes ✅
+
+⚠️ **Tokens OAuth No Encriptados**
+- **Causa**: Almacenamiento directo en BD
+- **Impacto**: Medio (si hay acceso a BD)
+- **Acción**: Implementar encriptación AES-256 antes de almacenar
+
+⚠️ **Logs Detallados en Producción**
+- **Causa**: console.error con datos sensibles
+- **Impacto**: Bajo (solo en logs server-side)
+- **Acción**: Usar logger profesional (Winston/Pino) con niveles configurables
+
+### 10.2 No Encontradas (✅ Implementado Correctamente)
+
+✅ **SQL Injection**: Prisma ORM previene automáticamente
+✅ **XSS**: React/Next.js escapan automáticamente
+✅ **CSRF**: NextAuth.js incluye protección CSRF
+✅ **Passwords en Texto Plano**: bcrypt implementado
+✅ **Session Hijacking**: JWT firmados con secret
+✅ **Inyección NoSQL**: No aplica (PostgreSQL)
+
+---
+
+## 11. Medidas de Performance Relacionadas con Seguridad
+
+### 11.1 Índices Optimizados
+
+**Para Consultas de Seguridad**:
+```prisma
+@@index([registrationIp])     // Buscar usuarios por IP
+@@index([walletAddress])      // Detectar multicuentas
+@@index([riskScore])          // Filtrar usuarios sospechosos
+@@index([userId, status])     // Auditar transacciones
+```
+
+### 11.2 Redis Caching
+
+**Uso**:
+- Rate limiting distribuido
+- Caché de configuraciones
+- Session storage opcional
+
+**Beneficios de Seguridad**:
+- ✅ Performance en validaciones repetitivas
+- ✅ Rate limiting efectivo en multi-worker
+- ✅ Reducción de carga en BD
+
+---
+
+## 12. Cumplimiento y Mejores Prácticas
+
+### 12.1 OWASP Top 10 (2021)
+
+| Vulnerabilidad | Estado | Implementación |
+|----------------|--------|----------------|
+| A01 - Broken Access Control | ✅ Protegido | RBAC + Multi-tenant + Middleware |
+| A02 - Cryptographic Failures | ⚠️ Parcial | bcrypt ✅ / OAuth tokens ⚠️ |
+| A03 - Injection | ✅ Protegido | Prisma ORM |
+| A04 - Insecure Design | ✅ Protegido | Arquitectura segura |
+| A05 - Security Misconfiguration | ✅ Protegido | Env vars + Secrets |
+| A06 - Vulnerable Components | ⚠️ Revisar | Dependencias actualizadas |
+| A07 - Auth Failures | ✅ Protegido | NextAuth + CAPTCHA + Email verification |
+| A08 - Data Integrity Failures | ✅ Protegido | JWT signed + AuditLog |
+| A09 - Logging Failures | ✅ Implementado | AuditLog + UserActivity + FacebookEventLog |
+| A10 - SSRF | ✅ Protegido | Validación de URLs en endpoints |
+
+### 12.2 GDPR / Privacidad
+
+✅ **Implementado**:
+- Soft deletes (deletedAt)
+- Anonimización posible (datos en JSON)
+- Auditoría completa de cambios
+- Exportación de datos de usuario
+
+⚠️ **Pendiente**:
+- Política de retención automática
+- Anonimización programática
+
+---
+
+## 13. Monitoreo y Alertas
+
+### 13.1 Logs Existentes
+
+**Eventos Registrados**:
+- ✅ Intentos de login fallidos (auth.ts)
+- ✅ Verificaciones de CAPTCHA (captcha.ts)
+- ✅ Actividad sospechosa en gemas (rate-limit.ts)
+- ✅ Eventos de Facebook Pixel (FacebookEventLog)
+- ✅ Cambios críticos (AuditLog)
+
+### 13.2 Recomendaciones de Monitoreo
+
+**Métricas a Rastrear**:
+- Intentos de login fallidos por IP
+- Usuarios con riskScore > 50
+- Transacciones de gemas rechazadas
+- Wallets compartidas detectadas
+- Rate limits alcanzados
+
+**Herramientas Sugeridas**:
+- Sentry / DataDog para errores
+- Grafana + Prometheus para métricas
+- ELK Stack para logs centralizados
+
+---
+
+## 14. Checklist de Seguridad
+
+### Autenticación ✅
+- [x] Hashing de contraseñas (bcrypt)
+- [x] Verificación de email obligatoria
+- [x] CAPTCHA en registro/login
+- [x] OAuth 2.0 (Google)
+- [x] JWT con expiración
+- [x] Roles y permisos (RBAC)
+
+### Anti-Bot ✅
+- [x] hCaptcha implementado
+- [x] IP tracking
+- [x] Risk score por usuario
+- [x] Wallet address tracking
+- [x] Detección de patrones sospechosos
+
+### Rate Limiting ⚠️
+- [x] Implementado con Redis
+- [x] Configurado en endpoints críticos
+- [ ] Habilitado en middleware global (limitación técnica)
+
+### Validación de Datos ✅
+- [x] Validación de inputs
+- [x] Sanitización de strings
+- [x] Límites de tamaño
+- [x] Tipo checking
+
+### Auditoría ✅
+- [x] AuditLog completo
+- [x] UserActivity tracking
+- [x] Logs de eventos externos (Facebook)
+- [x] IP y User Agent en logs
+
+### Infraestructura ✅
+- [x] Variables de entorno (.env)
+- [x] Secrets no commiteados
+- [x] HTTPS forzado (producción)
+- [x] CORS configurado
+
+### Pendientes ⚠️
+- [ ] Encriptación de OAuth tokens
+- [ ] Logger profesional (Winston/Pino)
+- [ ] Rotación de secrets automática
+- [ ] Rate limiting en middleware global (cuando Redis sea compatible con Edge)
+- [ ] Alertas automáticas de seguridad
+- [ ] Pentesting profesional
+
+---
+
+## 15. Recomendaciones Finales
+
+### Prioridad Alta 🔴
+1. **Encriptar OAuth Tokens**: Implementar AES-256 para accessToken/refreshToken
+2. **Logger Profesional**: Migrar de console.log a Winston/Pino con niveles
+3. **Alertas de Seguridad**: Configurar notificaciones para eventos críticos
+
+### Prioridad Media 🟡
+4. **Pentesting Externo**: Contratar auditoría de seguridad profesional
+5. **WAF (Web Application Firewall)**: Cloudflare/AWS WAF para capa adicional
+6. **Rotación de Secrets**: Implementar rotación automática de NEXTAUTH_SECRET
+
+### Prioridad Baja 🟢
+7. **2FA/MFA**: Autenticación de dos factores opcional para usuarios
+8. **Biometría**: Integración con WebAuthn para dispositivos compatibles
+9. **IP Whitelisting**: Para acciones administrativas críticas
+
+---
+
+## Conclusión
+
+La plataforma VW Activities cuenta con un **nivel de seguridad sólido** en las áreas críticas:
+
+✅ **Fortalezas**:
+- Autenticación robusta con múltiples capas
+- Sistema anti-bot efectivo con CAPTCHA y risk scoring
+- Rate limiting implementado en endpoints críticos
+- Validación y sanitización de datos
+- Auditoría completa con AuditLog
+- Aislamiento multi-tenant correcto
+- Protección contra inyecciones SQL/XSS
+
+⚠️ **Áreas de Mejora**:
+- Encriptación de tokens OAuth sensibles
+- Sistema de logging profesional
+- Pentesting externo para validación
+- Alertas automáticas de seguridad
+
+**Recomendación General**: La plataforma es segura para producción con las implementaciones actuales. Las mejoras sugeridas son optimizaciones que reducirían aún más la superficie de ataque.
+
+---
+
+**Fecha del Análisis**: 2025-11-18
+**Versión del Sistema**: Next.js 15.3.3 | Prisma 5.x | PostgreSQL
+**Analizado por**: Claude Code (Anthropic)
